@@ -1,4 +1,11 @@
-import { Body, Controller, HttpCode, HttpStatus, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  HttpCode,
+  HttpStatus,
+  Patch,
+  Post,
+} from '@nestjs/common';
 import { AuthService } from '@/modules/auth/auth.service';
 import {
   GenerateOTPDto,
@@ -7,6 +14,7 @@ import {
   ValidateOTPDto,
 } from '@/modules/auth/dtos';
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { ForgetPasswordDto } from '@/modules/user/dtos';
 
 @Controller('auth')
 @ApiTags('auth')
@@ -122,6 +130,68 @@ export class AuthController {
   })
   signIn(@Body() dto: SignInDto) {
     return this.authService.signIn(dto);
+  }
+
+  @Patch('forget-password')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    description: 'Update user with a temporal password',
+  })
+  @ApiResponse({
+    status: HttpStatus.OK,
+    description: 'Ok',
+    schema: {
+      example: {
+        statusCode: HttpStatus.OK,
+        message: 'User updated with a temporal password',
+        data: {
+          id: 3,
+          firstName: 'John',
+          lastName: 'Doe',
+          citizenId: '40212345678',
+          birthDate: null,
+          phone: '8099904040',
+          email: 'jdoe@domain.com',
+          profilePicture: null,
+          createdAt: '2023-07-24T00:08:04.473Z',
+          updatedAt: null,
+          isActive: true,
+          role: {
+            id: 3,
+            description: 'Patient',
+            createdAt: '2023-07-23T20:49:02.225Z',
+            updatedAt: null,
+            isActive: true,
+          },
+          doctorType: null,
+        },
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.BAD_REQUEST,
+    description: 'Bad Request',
+    schema: {
+      example: {
+        statusCode: HttpStatus.BAD_REQUEST,
+        message: ['email must be an email'],
+        error: 'Bad Request',
+      },
+    },
+  })
+  @ApiResponse({
+    status: HttpStatus.NOT_FOUND,
+    description: 'Not Found',
+    schema: {
+      example: {
+        statusCode: HttpStatus.NOT_FOUND,
+        message: 'Cannot find user with email jdoe@em.com',
+        error: 'Not Found',
+      },
+    },
+  })
+  forgetPassword(@Body() dto: ForgetPasswordDto) {
+    return this.authService.forgetPassword(dto);
   }
 
   @Post('otp/generate')

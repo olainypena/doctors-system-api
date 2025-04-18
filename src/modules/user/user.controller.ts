@@ -5,10 +5,8 @@ import {
   HttpCode,
   HttpStatus,
   Param,
-  ParseIntPipe,
   Patch,
   Post,
-  Query,
   UseGuards,
 } from '@nestjs/common';
 import {
@@ -22,78 +20,58 @@ import { UserService } from '@/modules/user/user.service';
 import {
   ChangePasswordDto,
   CreateUserDto,
-  ForgetPasswordDto,
-  GetUsersDto,
   UpdateUserDto,
 } from '@/modules/user/dtos';
 import { JwtGuard } from '@/modules/auth/guards';
-import { GetUser } from '@/modules/auth/decorators';
+import { AuthUser } from '@/modules/auth/decorators';
 import { User } from '@/modules/user/entities';
+import { ApiAnyResponse } from '@/common/decorators';
+import { IResponse } from '@/common/interfaces';
 
 @Controller('user')
+@UseGuards(JwtGuard)
 @ApiTags('user')
+@ApiBearerAuth()
 export class UserController {
   constructor(private userService: UserService) {}
 
   @Get()
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtGuard)
-  @ApiBearerAuth()
   @ApiOperation({
-    description: 'Get single or all users',
+    summary: 'Get logged user',
+    description: 'Get logged in user info',
   })
-  @ApiResponse({
+  @ApiAnyResponse({
     status: HttpStatus.OK,
-    description: 'Ok',
-    schema: {
-      example: {
-        statusCode: HttpStatus.OK,
-        message: 'Users retrieved successfully',
-        data: [
-          {
-            id: 3,
-            firstName: 'John',
-            lastName: 'Doe',
-            citizenId: '40212345678',
-            birthDate: null,
-            phone: '8099904040',
-            email: 'jdoe@domain.com',
-            profilePicture: null,
-            createdAt: '2023-07-24T00:08:04.473Z',
-            updatedAt: null,
-            isActive: true,
-            role: {
-              id: 3,
-              description: 'Patient',
-              createdAt: '2023-07-23T20:49:02.225Z',
-              updatedAt: null,
-              isActive: true,
-            },
-            doctorType: null,
-          },
-        ],
-      },
-    },
+    message: 'User retrieved',
+    entity: User,
   })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: 'Not Found',
-    schema: {
-      example: {
-        statusCode: HttpStatus.NOT_FOUND,
-        message: 'Cannot find user with id {id}}',
-        error: 'Not Found',
-      },
-    },
+  get(@AuthUser() user: User): Promise<IResponse<User>> {
+    return this.userService.get(user);
+  }
+
+  @Get('all')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Get All Users',
+    description: 'Get all users',
   })
-  getUsers(@Query() dto: GetUsersDto) {
-    return this.userService.getUsers(dto);
+  @ApiAnyResponse({
+    status: HttpStatus.OK,
+    message: 'Users retrieved',
+    entity: [User],
+  })
+  @ApiAnyResponse({
+    status: HttpStatus.BAD_REQUEST,
+    message: 'No users found',
+    error: true,
+  })
+  findAll(@AuthUser() user: User): Promise<IResponse<User[]>> {
+    return this.userService.findAll(user);
   }
 
   @Post()
   @HttpCode(HttpStatus.CREATED)
-  @UseGuards(JwtGuard)
-  @ApiBearerAuth()
   @ApiOperation({
     description: 'Create a new user',
   })
@@ -145,8 +123,6 @@ export class UserController {
 
   @Patch(':id')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtGuard)
-  @ApiBearerAuth()
   @ApiOperation({
     description: 'Update user info',
   })
@@ -209,79 +185,12 @@ export class UserController {
     example: 1,
     description: 'User ID',
   })
-  updateUser(
-    @Param('id', ParseIntPipe) id: number,
-    @Body() dto: UpdateUserDto,
-  ) {
+  updateUser(@Param('id') id: string, @Body() dto: UpdateUserDto) {
     return this.userService.updateUser(id, dto);
-  }
-
-  @Patch('forget-password')
-  @HttpCode(HttpStatus.OK)
-  @ApiOperation({
-    description: 'Update user with a temporal password',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Ok',
-    schema: {
-      example: {
-        statusCode: HttpStatus.OK,
-        message: 'User updated with a temporal password',
-        data: {
-          id: 3,
-          firstName: 'John',
-          lastName: 'Doe',
-          citizenId: '40212345678',
-          birthDate: null,
-          phone: '8099904040',
-          email: 'jdoe@domain.com',
-          profilePicture: null,
-          createdAt: '2023-07-24T00:08:04.473Z',
-          updatedAt: null,
-          isActive: true,
-          role: {
-            id: 3,
-            description: 'Patient',
-            createdAt: '2023-07-23T20:49:02.225Z',
-            updatedAt: null,
-            isActive: true,
-          },
-          doctorType: null,
-        },
-      },
-    },
-  })
-  @ApiResponse({
-    status: HttpStatus.BAD_REQUEST,
-    description: 'Bad Request',
-    schema: {
-      example: {
-        statusCode: HttpStatus.BAD_REQUEST,
-        message: ['email must be an email'],
-        error: 'Bad Request',
-      },
-    },
-  })
-  @ApiResponse({
-    status: HttpStatus.NOT_FOUND,
-    description: 'Not Found',
-    schema: {
-      example: {
-        statusCode: HttpStatus.NOT_FOUND,
-        message: 'Cannot find user with email jdoe@em.com',
-        error: 'Not Found',
-      },
-    },
-  })
-  forgetPassword(@Body() dto: ForgetPasswordDto) {
-    return this.userService.forgetPassword(dto);
   }
 
   @Patch('change-password')
   @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtGuard)
-  @ApiBearerAuth()
   @ApiOperation({
     description: 'Change user current password',
   })
@@ -338,50 +247,7 @@ export class UserController {
       },
     },
   })
-  changePassword(@GetUser() user: User, @Body() dto: ChangePasswordDto) {
+  changePassword(@AuthUser() user: User, @Body() dto: ChangePasswordDto) {
     return this.userService.changePassword(user, dto);
-  }
-
-  @Get('params')
-  @HttpCode(HttpStatus.OK)
-  @UseGuards(JwtGuard)
-  @ApiBearerAuth()
-  @ApiOperation({
-    description: 'Get all users params',
-  })
-  @ApiResponse({
-    status: HttpStatus.OK,
-    description: 'Ok',
-    schema: {
-      example: {
-        statusCode: HttpStatus.OK,
-        message: 'Params retrieved successfully',
-        data: {
-          roles: [
-            {
-              id: 1,
-              description: 'Admin',
-              createdAt: '2023-07-23T20:49:01.771Z',
-              updatedAt: null,
-              isActive: true,
-            },
-          ],
-          doctorTypes: [
-            {
-              id: 1,
-              type: 'Cardiologist',
-              description:
-                'Specializes in heart-related conditions and treatments.',
-              createdAt: '2023-07-24T00:24:49.682Z',
-              updatedAt: null,
-              isActive: true,
-            },
-          ],
-        },
-      },
-    },
-  })
-  params() {
-    return this.userService.getParams();
   }
 }

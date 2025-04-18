@@ -29,7 +29,7 @@ export class AppModule {
   constructor(private readonly configService: ConfigService) {
     const version = this.configService.get<string>('version');
 
-    AppModule.globalPrefix = `v${version.split('.')[0]}`;
+    AppModule.globalPrefix = `api/v${version.split('.')[0]}`;
     AppModule.packageName = this.configService.get<string>('name');
     AppModule.packageVersion = version;
     AppModule.packageDescription =

@@ -9,17 +9,9 @@ import {
   IsString,
   Length,
 } from 'class-validator';
+import { PaginationDto } from '@/common/dtos';
 
-export class GetUsersDto {
-  @IsNumber()
-  @IsOptional()
-  @Transform(({ value }) => parseInt(value))
-  @ApiProperty({
-    type: Number,
-    example: 1,
-  })
-  id?: number;
-
+export class FindAllUsersDto extends PaginationDto {
   @IsString()
   @IsOptional()
   @Length(1, 50)

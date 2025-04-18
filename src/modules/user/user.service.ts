@@ -10,19 +10,19 @@ import {
 import {
   ChangePasswordDto,
   CreateUserDto,
-  ForgetPasswordDto,
-  GetUsersDto,
+  FindAllUsersDto,
   UpdateUserDto,
 } from '@/modules/user/dtos';
 import * as argon from 'argon2';
-import * as crypto from 'crypto';
 import { MailerService } from '@nestjs-modules/mailer';
-import * as moment from 'moment';
+import { IResponse } from '@/common/interfaces';
+import { PaginationUtil } from '@/common/utils';
 
 @Injectable()
 export class UserService {
   constructor(
     private mailerService: MailerService,
+    private readonly paginationUtil: PaginationUtil,
     // @InjectPinoLogger(UserService.name)
     // private readonly logger: PinoLogger,
     @InjectRepository(User)
@@ -33,47 +33,46 @@ export class UserService {
     private userDoctorTypesRepository: Repository<UserDoctorType>,
   ) {}
 
-  async getUsers(getUsersDto?: GetUsersDto) {
-    const search: any = {};
+  async findAll(dto: FindAllUsersDto): Promise<IResponse> {
+    const { page, pageSize, ...filter } = dto;
+    const usersCount: number = await this.usersRepository.count({
+      where: filter,
+    });
 
-    if (getUsersDto.firstName) search.firstName = getUsersDto.firstName;
-    if (getUsersDto.lastName) search.lastName = getUsersDto.lastName;
-    if (getUsersDto.citizenId) search.citizenId = getUsersDto.citizenId;
-    if (getUsersDto.phone) search.phone = getUsersDto.phone;
-    if (getUsersDto.email) search.email = getUsersDto.email;
-    if (getUsersDto.roleId) search.role = { id: getUsersDto.roleId };
-    if (getUsersDto.doctorTypeId)
-      search.doctorType = { id: getUsersDto.doctorTypeId };
-    if (getUsersDto.isActive) search.isActive = getUsersDto.isActive;
-
-    if (getUsersDto.id) {
-      if (getUsersDto.id) search.id = getUsersDto.id;
-
-      const user: User = await this.usersRepository.findOneBy(search);
-
-      if (!user) {
-        throw new NotFoundException(
-          `Cannot find user with id ${getUsersDto.id}`,
-        );
-      }
-
-      delete user.passwordHash;
-
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'User retrieved successfully',
-        data: user,
-      };
-    } else {
-      const users = await this.usersRepository.find(search);
-      users.forEach((user) => delete user.passwordHash);
-
-      return {
-        statusCode: HttpStatus.OK,
-        message: 'Users retrieved successfully',
-        data: users,
-      };
+    if (usersCount === 0) {
+      throw new NotFoundException(`No users found`);
     }
+
+    const users: User[] = await this.usersRepository.find({
+      ...this.paginationUtil.setPagination(page, pageSize),
+      where: filter,
+      order: { createdAt: 'DESC' },
+    });
+
+    users.forEach((user) => delete user.passwordHash);
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'Users retrieved',
+      data: {
+        ...this.paginationUtil.setPaginationRes(page, pageSize, usersCount),
+        items: users,
+      },
+    };
+  }
+
+  async get(authUser: User): Promise<IResponse<User>> {
+    const user: User = await this.usersRepository.findOneBy({
+      id: authUser.id,
+    });
+
+    delete user.passwordHash;
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'User retrieved successfully',
+      data: user,
+    };
   }
 
   async createUser(dto: CreateUserDto) {
@@ -124,8 +123,8 @@ export class UserService {
     };
   }
 
-  async updateUser(id: number, dto: UpdateUserDto) {
-    const user = await this.usersRepository.findOneBy({ id: 1 });
+  async updateUser(id: string, dto: UpdateUserDto) {
+    const user = await this.usersRepository.findOneBy({ id });
 
     if (!user) {
       throw new NotFoundException(`Cannot find user with id ${id}`);
@@ -157,7 +156,7 @@ export class UserService {
     if (dto.isActive !== undefined) {
       await this.mailerService.sendMail({
         to: updatedUser.email,
-        subject: `Usuario ${updatedUser.isActive ? 'Activado' : 'Desactivado'}`,
+        subject: `User ${updatedUser.isActive ? 'Enabled' : 'Disabled'}`,
         template: './user-change-status',
         context: {
           name: `${updatedUser.firstName} ${updatedUser.lastName}`,
@@ -201,63 +200,6 @@ export class UserService {
       statusCode: HttpStatus.OK,
       message: 'Password changed successfully',
       data: user,
-    };
-  }
-
-  async forgetPassword(dto: ForgetPasswordDto) {
-    const user = await this.usersRepository.findOneBy({
-      email: dto.email,
-    });
-
-    if (!user) {
-      throw new NotFoundException(`Cannot find user with email ${dto.email}`);
-    }
-
-    const tempPassword = crypto.randomBytes(5).toString('hex');
-    const tempPasswordHash = await argon.hash(tempPassword);
-
-    await this.usersRepository.save(
-      this.usersRepository.create({
-        id: user.id,
-        passwordHash: tempPasswordHash,
-      }),
-    );
-
-    delete user.passwordHash;
-
-    await this.mailerService.sendMail({
-      to: user.email,
-      subject: 'Contraseña Temporal',
-      template: './user-forget-password',
-      context: {
-        name: `${user.firstName} ${user.lastName}`,
-        date: moment().format('DD-MM-YYYY'),
-        tempPassword: tempPassword,
-      },
-    });
-    // .then((res) => this.logger.info(res, 'Forget Password Mail'));
-
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'User updated with a temporal password',
-      data: {
-        ...user,
-        temporalPassword: tempPassword,
-      },
-    };
-  }
-
-  async getParams() {
-    const roles = await this.userRolesRepository.find();
-    const doctorTypes = await this.userDoctorTypesRepository.find();
-
-    return {
-      statusCode: HttpStatus.OK,
-      message: 'Params retrieved successfully',
-      data: {
-        roles,
-        doctorTypes,
-      },
     };
   }
 }

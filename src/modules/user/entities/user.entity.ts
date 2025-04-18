@@ -11,8 +11,8 @@ import { UserDoctorType, UserRole } from 'src/modules/user/entities';
 
 @Entity({ name: 'USER' })
 export class User {
-  @PrimaryGeneratedColumn({ name: 'ID' })
-  id: number;
+  @PrimaryGeneratedColumn('uuid', { name: 'ID' })
+  id: string;
 
   @Column({ name: 'FIRST_NAME', type: 'varchar', length: 50 })
   firstName: string;

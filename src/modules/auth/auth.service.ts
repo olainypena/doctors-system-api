@@ -3,6 +3,7 @@ import {
   HttpStatus,
   Injectable,
   NotAcceptableException,
+  NotFoundException,
 } from '@nestjs/common';
 import {
   GenerateOTPDto,
@@ -20,7 +21,9 @@ import { OTP } from '@/modules/auth/entities';
 import { JwtService } from '@nestjs/jwt';
 import { UserRoleEnum } from '@/modules/user/enums';
 import * as argon from 'argon2';
-import * as moment from 'moment';
+import moment from 'moment';
+import { ForgetPasswordDto } from '@/modules/user/dtos';
+import crypto from 'crypto';
 
 @Injectable()
 export class AuthService {
@@ -36,7 +39,7 @@ export class AuthService {
     private otpsRepository: Repository<OTP>,
   ) {}
 
-  private async signToken(userId: number, email: string): Promise<string> {
+  private async signToken(userId: string, email: string): Promise<string> {
     const payload = { id: userId, email };
 
     return this.jwt.sign(payload, {
@@ -68,7 +71,7 @@ export class AuthService {
 
     await this.mailerService.sendMail({
       to: dto.email,
-      subject: 'Registro de Usuario',
+      subject: 'User Sign Up',
       template: './auth-sign-up',
       context: {
         name: `${dto.firstName} ${dto.lastName}`,
@@ -113,6 +116,49 @@ export class AuthService {
     };
   }
 
+  async forgetPassword(dto: ForgetPasswordDto) {
+    const user = await this.usersRepository.findOneBy({
+      email: dto.email,
+    });
+
+    if (!user) {
+      throw new NotFoundException(`Cannot find user with email ${dto.email}`);
+    }
+
+    const tempPassword = crypto.randomBytes(5).toString('hex');
+    const tempPasswordHash = await argon.hash(tempPassword);
+
+    await this.usersRepository.save(
+      this.usersRepository.create({
+        id: user.id,
+        passwordHash: tempPasswordHash,
+      }),
+    );
+
+    delete user.passwordHash;
+
+    await this.mailerService.sendMail({
+      to: user.email,
+      subject: 'Temporal Password',
+      template: './user-forget-password',
+      context: {
+        name: `${user.firstName} ${user.lastName}`,
+        date: moment().format('DD-MM-YYYY'),
+        tempPassword: tempPassword,
+      },
+    });
+    // .then((res) => this.logger.info(res, 'Forget Password Mail'));
+
+    return {
+      statusCode: HttpStatus.OK,
+      message: 'User updated with a temporal password',
+      data: {
+        ...user,
+        temporalPassword: tempPassword,
+      },
+    };
+  }
+
   async generateOTP(dto: GenerateOTPDto) {
     const userAttempts: number = await this.otpsRepository.countBy({
       email: dto.email,
@@ -137,7 +183,7 @@ export class AuthService {
 
     await this.mailerService.sendMail({
       to: dto.email,
-      subject: 'Código OTP',
+      subject: 'OTP Code',
       template: './auth-otp-generate',
       context: {
         otp: otp,
