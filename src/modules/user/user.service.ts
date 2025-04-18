@@ -17,15 +17,14 @@ import {
 import * as argon from 'argon2';
 import * as crypto from 'crypto';
 import { MailerService } from '@nestjs-modules/mailer';
-import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import * as moment from 'moment';
 
 @Injectable()
 export class UserService {
   constructor(
     private mailerService: MailerService,
-    @InjectPinoLogger(UserService.name)
-    private readonly logger: PinoLogger,
+    // @InjectPinoLogger(UserService.name)
+    // private readonly logger: PinoLogger,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     @InjectRepository(UserRole)
@@ -107,17 +106,16 @@ export class UserService {
 
     delete newUser.passwordHash;
 
-    await this.mailerService
-      .sendMail({
-        to: newUser.email,
-        subject: 'Bienvenido',
-        template: './user-created',
-        context: {
-          name: `${newUser.firstName} ${newUser.lastName}`,
-          password: dto.password,
-        },
-      })
-      .then((res) => this.logger.info(res, 'User Created Mail'));
+    await this.mailerService.sendMail({
+      to: newUser.email,
+      subject: 'Bienvenido',
+      template: './user-created',
+      context: {
+        name: `${newUser.firstName} ${newUser.lastName}`,
+        password: dto.password,
+      },
+    });
+    // .then((res) => this.logger.info(res, 'User Created Mail'));
 
     return {
       statusCode: HttpStatus.CREATED,
@@ -157,19 +155,16 @@ export class UserService {
     delete updatedUser.passwordHash;
 
     if (dto.isActive !== undefined) {
-      await this.mailerService
-        .sendMail({
-          to: updatedUser.email,
-          subject: `Usuario ${
-            updatedUser.isActive ? 'Activado' : 'Desactivado'
-          }`,
-          template: './user-change-status',
-          context: {
-            name: `${updatedUser.firstName} ${updatedUser.lastName}`,
-            isActive: updatedUser.isActive,
-          },
-        })
-        .then((res) => this.logger.info(res, 'User Status Mail'));
+      await this.mailerService.sendMail({
+        to: updatedUser.email,
+        subject: `Usuario ${updatedUser.isActive ? 'Activado' : 'Desactivado'}`,
+        template: './user-change-status',
+        context: {
+          name: `${updatedUser.firstName} ${updatedUser.lastName}`,
+          isActive: updatedUser.isActive,
+        },
+      });
+      // .then((res) => this.logger.info(res, 'User Status Mail'));
     }
 
     return {
@@ -230,18 +225,17 @@ export class UserService {
 
     delete user.passwordHash;
 
-    await this.mailerService
-      .sendMail({
-        to: user.email,
-        subject: 'Contraseña Temporal',
-        template: './user-forget-password',
-        context: {
-          name: `${user.firstName} ${user.lastName}`,
-          date: moment().format('DD-MM-YYYY'),
-          tempPassword: tempPassword,
-        },
-      })
-      .then((res) => this.logger.info(res, 'Forget Password Mail'));
+    await this.mailerService.sendMail({
+      to: user.email,
+      subject: 'Contraseña Temporal',
+      template: './user-forget-password',
+      context: {
+        name: `${user.firstName} ${user.lastName}`,
+        date: moment().format('DD-MM-YYYY'),
+        tempPassword: tempPassword,
+      },
+    });
+    // .then((res) => this.logger.info(res, 'Forget Password Mail'));
 
     return {
       statusCode: HttpStatus.OK,

@@ -2,17 +2,18 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { packageJson } from '@/common/utils';
 import { LoggerMiddleware } from '@/common/middlewares';
-import { DatabaseConfig } from '@/config';
+import { DatabaseConfig, MailConfig } from '@/config';
 import * as Modules from '@/modules';
 
 @Module({
   imports: [
+    LoggerMiddleware,
+    DatabaseConfig,
+    MailConfig,
     ConfigModule.forRoot({
       isGlobal: true,
       load: [packageJson],
     }),
-    LoggerMiddleware,
-    DatabaseConfig,
     ...Object.values(Modules),
   ],
 })

@@ -15,7 +15,6 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { User } from '@/modules/user/entities';
 import { Between, Repository } from 'typeorm';
 import { MailerService } from '@nestjs-modules/mailer';
-import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { totp } from 'otplib';
 import { OTP } from '@/modules/auth/entities';
 import { JwtService } from '@nestjs/jwt';
@@ -29,8 +28,8 @@ export class AuthService {
     private config: ConfigService,
     private mailerService: MailerService,
     private jwt: JwtService,
-    @InjectPinoLogger(AuthService.name)
-    private readonly logger: PinoLogger,
+    // @InjectPinoLogger(AuthService.name)
+    // private readonly logger: PinoLogger,
     @InjectRepository(User)
     private usersRepository: Repository<User>,
     @InjectRepository(OTP)
@@ -67,16 +66,15 @@ export class AuthService {
       },
     });
 
-    await this.mailerService
-      .sendMail({
-        to: dto.email,
-        subject: 'Registro de Usuario',
-        template: './auth-sign-up',
-        context: {
-          name: `${dto.firstName} ${dto.lastName}`,
-        },
-      })
-      .then((res) => this.logger.info(res, 'New User Mail'));
+    await this.mailerService.sendMail({
+      to: dto.email,
+      subject: 'Registro de Usuario',
+      template: './auth-sign-up',
+      context: {
+        name: `${dto.firstName} ${dto.lastName}`,
+      },
+    });
+    // .then((res) => this.logger.info(res, 'New User Mail'));
 
     const newUser: User = await this.usersRepository.findOneBy({
       email: dto.email,
@@ -137,16 +135,15 @@ export class AuthService {
       email: dto.email,
     });
 
-    await this.mailerService
-      .sendMail({
-        to: dto.email,
-        subject: 'Código OTP',
-        template: './auth-otp-generate',
-        context: {
-          otp: otp,
-        },
-      })
-      .then((res) => this.logger.info(res, 'OTP Generated Mail'));
+    await this.mailerService.sendMail({
+      to: dto.email,
+      subject: 'Código OTP',
+      template: './auth-otp-generate',
+      context: {
+        otp: otp,
+      },
+    });
+    // .then((res) => this.logger.info(res, 'OTP Generated Mail'));
 
     return {
       statusCode: HttpStatus.OK,

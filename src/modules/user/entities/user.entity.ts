@@ -9,7 +9,7 @@ import {
 } from 'typeorm';
 import { UserDoctorType, UserRole } from 'src/modules/user/entities';
 
-@Entity()
+@Entity({ name: 'USER' })
 export class User {
   @PrimaryGeneratedColumn()
   id: number;
