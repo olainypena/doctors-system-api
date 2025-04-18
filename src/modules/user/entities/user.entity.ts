@@ -11,10 +11,10 @@ import { UserDoctorType, UserRole } from 'src/modules/user/entities';
 
 @Entity({ name: 'USER' })
 export class User {
-  @PrimaryGeneratedColumn()
+  @PrimaryGeneratedColumn({ name: 'ID' })
   id: number;
 
-  @Column({ name: 'FISRT_NAME', type: 'varchar', length: 50 })
+  @Column({ name: 'FIRST_NAME', type: 'varchar', length: 50 })
   firstName: string;
 
   @Column({ name: 'LAST_NAME', type: 'varchar', length: 50 })
@@ -39,11 +39,10 @@ export class User {
   profilePicture?: string;
 
   @ManyToOne(() => UserRole, (role) => role.users, {
-    nullable: true,
     eager: true,
   })
   @JoinColumn({ name: 'ROLE_ID' })
-  role?: UserRole;
+  role: UserRole;
 
   @ManyToOne(() => UserDoctorType, (doctorType) => doctorType.users, {
     nullable: true,

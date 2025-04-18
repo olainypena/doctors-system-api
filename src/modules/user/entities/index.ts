@@ -1,3 +1,3 @@
 export * from './user.entity';
-export * from './role.entity';
-export * from './doctor-type.entity';
+export * from './user-role.entity';
+export * from './user-doctor-type.entity';

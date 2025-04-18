@@ -1,4 +1,4 @@
-export enum DoctorTypeEnum {
+export enum UserDoctorTypeEnum {
   Cardiologist = 1,
   Surgeon,
   Dermatologist,

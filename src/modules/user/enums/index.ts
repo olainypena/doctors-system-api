@@ -1,2 +1,2 @@
-export * from './role.enum';
-export * from './doctor-type.enum';
+export * from './user-role.enum';
+export * from './user-doctor-type.enum';

@@ -20,6 +20,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         synchronize: true,
         logging: true,
         entities: [__dirname + '../../modules/*/entities/*.entity{.ts,.js}'],
+        seeds: [__dirname + '../../modules/*/seeds/*.seed{.ts,.js}'],
       }),
     }),
   ],

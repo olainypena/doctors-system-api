@@ -18,7 +18,7 @@ import { MailerService } from '@nestjs-modules/mailer';
 import { totp } from 'otplib';
 import { OTP } from '@/modules/auth/entities';
 import { JwtService } from '@nestjs/jwt';
-import { RoleEnum } from '@/modules/user/enums';
+import { UserRoleEnum } from '@/modules/user/enums';
 import * as argon from 'argon2';
 import * as moment from 'moment';
 
@@ -62,7 +62,7 @@ export class AuthService {
       email: dto.email,
       passwordHash: dto.password,
       role: {
-        id: RoleEnum.Patient,
+        id: UserRoleEnum.Patient,
       },
     });
 
